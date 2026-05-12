@@ -124,6 +124,11 @@ def write(path: Path, text: str):
     path.write_text(text.rstrip() + "\n", encoding="utf-8")
 
 
+def md_link(from_file: str | Path, repo_path: str | Path) -> str:
+    """Return a GitHub-safe relative link from one repo file to another."""
+    return os.path.relpath(ROOT / repo_path, (ROOT / from_file).parent).replace(os.sep, "/")
+
+
 def download_audio(ep: dict) -> Path:
     out = ROOT / "working/audio" / f"{ep['slug']}.mp3"
     if out.exists() and out.stat().st_size > 100_000:
@@ -273,7 +278,7 @@ def write_episode(ep: dict, segments: list[dict]) -> dict:
             "",
             f"# {ep['title']} - Chunk {i}",
             "",
-            f"Episode: [[../episode|{ep['title']}]]",
+            f"Episode: [{ep['title']}](../episode.md)",
             "",
             "## Transcript",
             "",
@@ -345,12 +350,12 @@ def write_indexes(records: list[dict]):
             writer.writerow({**{k: r[k] for k in writer.fieldnames if k in r}, "topics": "; ".join(r["topics"])})
     by_date = ["# Episodes By Date", ""]
     for r in records:
-        by_date.append(f"- {r['published']} - [{r['title']}]({r['episode_path']})")
+        by_date.append(f"- {r['published']} - [{r['title']}]({md_link('indexes/by-date.md', r['episode_path'])})")
     write(ROOT / "indexes/by-date.md", "\n".join(by_date))
     by_episode = ["# Episodes By Number", ""]
     for r in sorted(records, key=lambda x: float(x["episode_number"] or 0), reverse=True):
         num = f"E.{r['episode_number']}" if r["episode_number"] else "No episode number"
-        by_episode.append(f"- {num} - {r['published']} - [{r['title']}]({r['episode_path']})")
+        by_episode.append(f"- {num} - {r['published']} - [{r['title']}]({md_link('indexes/by-episode.md', r['episode_path'])})")
     write(ROOT / "indexes/by-episode.md", "\n".join(by_episode))
     topic_map: dict[str, list[dict]] = {}
     for r in records:
@@ -360,7 +365,7 @@ def write_indexes(records: list[dict]):
     for topic in sorted(topic_map):
         topic_lines.extend([f"## {topic}", ""])
         for r in topic_map[topic]:
-            topic_lines.append(f"- {r['published']} - [{r['title']}]({r['summary_path']})")
+            topic_lines.append(f"- {r['published']} - [{r['title']}]({md_link('indexes/by-topic.md', r['summary_path'])})")
         topic_lines.append("")
     write(ROOT / "indexes/by-topic.md", "\n".join(topic_lines))
     routing = [
@@ -481,4 +486,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
