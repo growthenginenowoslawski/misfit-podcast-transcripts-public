@@ -10,7 +10,6 @@ import re
 import subprocess
 import sys
 import textwrap
-import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -79,7 +78,7 @@ def yaml_escape(value: str) -> str:
 
 
 def fetch_feed() -> list[dict]:
-    xml = subprocess.check_output(["curl", "-L", "-s", FEED_URL])
+    xml = subprocess.check_output(["curl", "-L", "--fail", "-s", "-A", "Mozilla/5.0", FEED_URL])
     root = ET.fromstring(xml)
     episodes = []
     for item in root.find("channel").findall("item"):
@@ -122,6 +121,12 @@ def fetch_feed() -> list[dict]:
 def write(path: Path, text: str):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text.rstrip() + "\n", encoding="utf-8")
+
+
+def write_if_missing(path: Path, text: str):
+    if path.exists():
+        return
+    write(path, text)
 
 
 def md_link(from_file: str | Path, repo_path: str | Path) -> str:
@@ -376,7 +381,7 @@ def write_indexes(records: list[dict]):
     ]
     for topic in sorted(topic_map):
         routing.append(f"- If the question is about **{topic}**, start with `indexes/by-topic.md#{slugify(topic)}` and the episode summaries listed there.")
-    write(ROOT / "summaries/question-routing.md", "\n".join(routing))
+    write_if_missing(ROOT / "summaries/question-routing.md", "\n".join(routing))
     show_summary = [
         "# Show-Level Summary",
         "",
@@ -396,7 +401,7 @@ def write_indexes(records: list[dict]):
         "- `summaries/question-routing.md` for deciding what to read.",
         "- `manifest.json` for machine-readable episode and chunk paths.",
     ]
-    write(ROOT / "summaries/show-level.md", "\n".join(show_summary))
+    write_if_missing(ROOT / "summaries/show-level.md", "\n".join(show_summary))
     topic_summary = ["# Key Themes", ""]
     for topic in sorted(topic_map):
         topic_summary.append(f"- **{topic}**: appears in {len(topic_map[topic])} episode(s).")
@@ -432,7 +437,7 @@ Give ChatGPT the GitHub repo link and say:
 - Speaker labels are not included in v1.
 - Audio files and raw working artifacts are intentionally excluded from the repo.
 """
-    write(ROOT / "README.md", readme)
+    write_if_missing(ROOT / "README.md", readme)
     start = """# START HERE For ChatGPT
 
 You are reading a public repo of Misfit Podcast transcripts and summaries.
@@ -451,7 +456,7 @@ You are reading a public repo of Misfit Podcast transcripts and summaries.
 - State when a transcript is automatic and may contain errors.
 - Do not assume speaker identity unless the transcript text makes it clear.
 """
-    write(ROOT / "START_HERE.md", start)
+    write_if_missing(ROOT / "START_HERE.md", start)
     usage = """# ChatGPT Usage Examples
 
 ## General Question
