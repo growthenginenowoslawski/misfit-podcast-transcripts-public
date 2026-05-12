@@ -1,0 +1,6 @@
+working/audio/
+working/json/
+working/logs/
+.DS_Store
+*.tmp
+
