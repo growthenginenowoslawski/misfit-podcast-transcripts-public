@@ -486,6 +486,7 @@ def main():
         records.append(write_episode(ep, load_segments(json_path)))
     write_indexes(records)
     write_root_docs(records)
+    subprocess.check_call([sys.executable, str(ROOT / "scripts/build_context_pack.py")])
     print(f"done episodes={len(records)} chunks={sum(r['chunk_count'] for r in records)}")
 
 
